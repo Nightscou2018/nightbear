@@ -76,7 +76,12 @@ export default app => {
 
     function parakeetDataEntry(datum) {
         return getLatestCalibration()
-            .then(cal => helpers.convertRawTransmitterData(app, datum, cal))
+            .then(cal => helpers.convertRawTransmitterData(app, datum, cal, {
+                sensorId: '239429348', // TODO: replace with real data
+                start: 1485086103637,
+                end: null,
+                placement: 'arm'
+            }))
             .then(convertedData =>
                 Promise.all([
                     dbPUT('sensor-entries-raw', convertedData.sensorEntriesRaw),

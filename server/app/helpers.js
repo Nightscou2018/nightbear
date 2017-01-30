@@ -61,7 +61,7 @@ export function changeSGVUnit(sgv) {
 // pc (passcode for parakeet)
 // bm (?)
 // ct (?)
-export function convertRawTransmitterData(app, entry, latestCalibration) {
+export function convertRawTransmitterData(app, entry, latestCalibration, latestSensor) {
     const date = convertCurrentTimeForParakeet(app, entry.ts); // adapted from parakeet app engine
     return {
         "sensorEntriesRaw": {
@@ -73,7 +73,8 @@ export function convertRawTransmitterData(app, entry, latestCalibration) {
                 unfiltered: parseInt(entry.lv, 10),
                 filtered: parseInt(entry.lf, 10) },
                 latestCalibration),
-            "date": date
+            "date": date,
+            "age_adjusted_raw_value": calculateAgeAdjustedRawValue(parseInt(entry.lv, 10), app.currentTime(), latestSensor)
         },
         "deviceStatusParakeet": {
             "geoLocation": entry.gl,
@@ -82,6 +83,18 @@ export function convertRawTransmitterData(app, entry, latestCalibration) {
             "date": date
         }
     };
+}
+
+function calculateAgeAdjustedRawValue(raw_data, timestamp, sensor){
+    const AGE_ADJUSTMENT_FACTOR = 0.45;
+    let time_since_sensor_started = timestamp - sensor.start;
+    const adjust_for = AGE_ADJUSTMENT_TIME - time_since_sensor_started;
+    const AGE_ADJUSTMENT_TIME = 86400000 * 1.9;
+    if (adjust_for > 0) {
+        age_adjusted_raw_value = ((AGE_ADJUSTMENT_FACTOR * (adjust_for / AGE_ADJUSTMENT_TIME)) * raw_data) + raw_data;
+    } else {
+        return raw_data;
+    }
 }
 
 export function convertCurrentTimeForParakeet(app, timeEntry) {
