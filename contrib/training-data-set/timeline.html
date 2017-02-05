@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nightbear Timeline</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.6/css/highcharts.css" />
+  <style>
+    html, body, #chart {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/5.0.6/highcharts.js"></script>
+  <script>
+
+    window.onhashchange = () => location.reload();
+
+    // var filename = 'cleaned/' + location.hash.replace(/^#/, '') + '.json';
+    var filename = 'week-47.json';
+
+    getTrainingData()
+      .then(toHighchartsSeries)
+      .then(renderChart)
+      .then(
+        res => console.info(res) || res,
+        err => console.warn(err)
+      )
+
+    function changeSGVUnit(sgv) {
+      return Math.round((sgv / 18) * 10) / 10;
+    }
+
+    function readableTime(ts) {
+      return (new Date(ts) + '');
+      return (new Date(ts) + '').replace(/.*?(\d+:\d+:\d+).*/, '$1');
+    }
+
+    function getTrainingData() {
+      return fetch(filename)
+        .then(res => res.json())
+    }
+
+    function toHighchartsSeries(res) {
+        return [
+            {
+                name: 'Meter (truth)',
+                data: res.meter.map(d => ({ x: d.date, y: changeSGVUnit(d.value) }))
+            },
+            {
+                name: 'Dexcom (truth)',
+                data: res.dexcom.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
+                turboThreshold: 10000,
+            },
+            {
+                name: 'Nightbear (guess)',
+                data: res.nightbear.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
+                turboThreshold: 10000,
+            },
+        ];
+    }
+
+    function renderChart(series) {
+      Highcharts.chart('chart', {
+        chart: {
+          zoomType: 'x'
+        },
+        title: {
+          text: 'Nightbear Training Data Timeline'
+        },
+        subtitle: {
+          text: document.ontouchstart === undefined ?
+            'Click and drag in the plot area to zoom in' : 'Pinch the chart to zoom in'
+        },
+        xAxis: {
+          type: 'datetime',
+          labels: {
+            formatter: function () {
+              return readableTime(this.value);
+            }
+          }
+        },
+        yAxis: {
+          type: 'logarithmic',
+          title: {
+            enabled: false
+          },
+          plotBands: [
+            { // low
+              from: 0,
+              to: 4,
+            },
+            { // high
+              from: 12,
+              to: Infinity,
+            }
+          ]
+        },
+        tooltip: {
+          crosshairs: true,
+          formatter: function() {
+            return '' +
+              'Device: ' + this.series.name + '<br>' +
+              'Time: ' + readableTime(this.x) + '<br>' +
+              'Value: ' + this.y + '<br>' +
+              '';
+          }
+        },
+        series: series
+      });
+    }
+
+  </script>
+</body>
+</html>
