@@ -107,17 +107,13 @@ function checkForCompressionLow(currentTimestamp, latestEntries, latestTreatment
         }
         let containsHugeSlopes = false;
         for (let i = 0; i < 4; i++) {
-            let slope = Math.abs(calculateSlope(latestFiveEntries[i], latestFiveEntries[i + 1]));
+            let slope = Math.abs(helpers.calculateSlope(latestFiveEntries[i], latestFiveEntries[i + 1]));
             if (slope > 2) {
                 containsHugeSlopes = true;
             }
         }
         return containsHugeSlopes;
     }
-}
-
-function calculateSlope(older, newer) {
-    return ((newer.nb_glucose_value - older.nb_glucose_value) / (newer.date - older.date)) * helpers.MIN_IN_MS * 5;
 }
 
 function calculateDirection(entries, latestNoise) {
@@ -131,7 +127,7 @@ function calculateDirection(entries, latestNoise) {
 
     let sumOfSlopes = 0;
     for (let i = 0; i < neededDataPointCount; i++) {
-        sumOfSlopes += calculateSlope(latest[i], latest[i + 1]);
+        sumOfSlopes += helpers.calculateSlope(latest[i], latest[i + 1]);
     }
 
     finalSlope = sumOfSlopes / neededDataPointCount;

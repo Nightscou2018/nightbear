@@ -76,10 +76,11 @@ export default app => {
 
     function parakeetDataEntry(datum) {
         return Promise.all([
+            app.data.getLatestEntry(20 * helpers.MIN_IN_MS),
             app.data.getLatestCalibration(),
             app.data.getLatestSensor()
         ])
-            .then(([cal, sensor]) => helpers.convertRawTransmitterData(app, datum, cal, sensor))
+            .then(([previousEntry, cal, sensor]) => helpers.convertRawTransmitterData(app, datum, previousEntry, cal, sensor))
             .then(convertedData =>
                 Promise.all([
                     dbPUT('sensor-entries-raw', convertedData.sensorEntriesRaw),
@@ -153,6 +154,11 @@ export default app => {
                 return Math.round(entry.date / (5 * helpers.MIN_IN_MS));
             }), 'date');
         })
+    }
+
+    // Promises the single latest bg entry inside durationMs
+    function getLatestEntry(durationMs) {
+        return _.last(getLatestEntries(durationMs));
     }
 
     // Promises uploader entries from the last durationMs

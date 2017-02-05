@@ -61,7 +61,7 @@ export function changeSGVUnit(sgv) {
 // pc (passcode for parakeet)
 // bm (?)
 // ct (?)
-export function convertRawTransmitterData(app, entry, latestCalibration, latestSensor) {
+export function convertRawTransmitterData(app, entry, previousEntry, latestCalibration, latestSensor) {
     const date = convertCurrentTimeForParakeet(app, entry.ts); // adapted from parakeet app engine
     return {
         "sensorEntriesRaw": {
@@ -69,11 +69,12 @@ export function convertRawTransmitterData(app, entry, latestCalibration, latestS
             "filtered": parseInt(entry.lf, 10),
             "device": "parakeet",
             "type": "raw",
+            "date": date,
             "nb_glucose_value": setActualGlucoseForParakeet({
                 unfiltered: parseInt(entry.lv, 10),
                 filtered: parseInt(entry.lf, 10) },
                 latestCalibration),
-            "date": date,
+            "nb_slope": calculateSlope(previousEntry, entry),
             "age_adjusted_raw_value": calculateAgeAdjustedRawValue(parseInt(entry.lv, 10), app.currentTime(), latestSensor)
         },
         "deviceStatusParakeet": {
@@ -83,6 +84,10 @@ export function convertRawTransmitterData(app, entry, latestCalibration, latestS
             "date": date
         }
     };
+}
+
+export function calculateSlope(older, newer) {
+    return ((newer.nb_glucose_value - older.nb_glucose_value) / (newer.date - older.date)) * MIN_IN_MS * 5;
 }
 
 function calculateAgeAdjustedRawValue(raw_data, timestamp, sensor){

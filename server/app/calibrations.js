@@ -17,7 +17,7 @@ const DEX_PARAMETERS = {
 
 let calibration = {
     timestamp: '',
-    sensor_age_at_time_of_estimation: '',
+    sensor_age_at_calibration: '',
     sensor: '',
     bg: '',
     raw_value: '',
@@ -49,118 +49,72 @@ export default app => {
     const log = app.logger(__filename);
 
     return {
-        getCalibrationParameters
+        generateCalibration
     };
 
-    function getCalibrationParameters(latestEntries) {
-        let scale, intercept, slope;
+    function generateCalibration(meterBg, sensor, latestEntries, latestCalibrations) {
+        let correspondingParakeetEntry = _.last(latestEntries);
+        let currentTime = app.currentTime();
 
-        // calculate parameters somehow :P
+        // TODO: check that parakeetEntry during < 15 min
+        if (!correspondingParakeetEntry) {
+            log("ERROR: Could not calibrate because there were no new enough raw entries");
+            return;
+        }
 
-        return {
-            "device": "nightbear",
-            "scale": scale,
-            "date": app.currentTime(),
-            "type": "cal",
-            "intercept": intercept,
-            "slope": slope
-        };
+        if (meterBg < 40 || meterBg > 400) {
+            log("ERROR: Could not calibrate because meter bg is out of range (40 - 400)");
+            return;
+        }
+
+        nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntries, latestCalibrations, currentTime)
     }
 };
 
-function initialCalibration(bg1, bg2, sensor, latestEntries) {
+// Requires: parakeet entry must have age_adjusted_raw_value and latestCals should be 4 days
+function nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntries, latestCalibrations, currentTime) {
 
-    let lastTwoEntries = latestEntries.slice(Math.max(latestEntries.length - 2, 1));
-    let bgReading1 = lastTwoEntries[0];
-    let bgReading2 = lastTwoEntries[1];
-    let highBgReading;
-    let lowBgReading;
-    let higher_bg = Math.max(bg1, bg2);
-    let lower_bg = Math.min(bg1, bg2);
-
-    if (bgReading1.unfiltered > bgReading2.unfiltered) {
-        highBgReading = bgReading1;
-        lowBgReading = bgReading2;
-    } else {
-        highBgReading = bgReading2;
-        lowBgReading = bgReading1;
-    }
-
-    let higherCal = createInitialCalibration(higher_bg, sensor, highBgReading);
-    let lowerCal = createInitialCalibration(lower_bg, sensor, lowBgReading);
-
-    highBgReading.nb_glucose_value = higher_bg;
-    lowBgReading.nb_glucose_value = lower_bg;
-
-    // TODO: SAVE ALL THESE TO DB
-
-    calculate_w_l_s()
-
-}
-
-function createInitialCalibration(meterBg, sensor, parakeetEntry) {
-    return {
-        timestamp: app.currentTime(),
-        slopeConfidence: 0.5,
-        checkIn: false, // ???
-        sensorConfidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
-        slope: 1,
-        sensorId: sensor._id,
-        bg: meterBg,
-        intercept: meterBg,
-        rawValue: parakeetEntry.unfiltered,
-        rawTimestamp: parakeetEntry.date,
-        adjustedRawValue: parakeetEntry.unfiltered, // ???
-        estimateRawAtTimeOfCalibration: parakeetEntry.unfiltered, // ???
-        sensor_age_at_time_of_estimation: app.currentTime() - sensor.start
-    };
-}
-
-// Requires: parakeet entry must have age_adjusted_raw_value
-function nextCalibration(meterBg, sensor, parakeetEntry, latestEntries) {
-
-    let estimate_raw_at_time_of_calibration;
+    let estimateRawAtCalibration;
     let params = findNewRawParameters(latestEntries);
-    let estimated_raw_bg = params.ra * app.currentTime() * app.currentTime() + (params.rb * app.currentTime()) + params.rc;
-    if (Math.abs(estimated_raw_bg - parakeetEntry.age_adjusted_raw_value) > 20) {
-        estimate_raw_at_time_of_calibration = parakeetEntry.age_adjusted_raw_value;
+    let estimated_raw_bg = params.ra * currentTime * currentTime + (params.rb * currentTime) + params.rc;
+    if (Math.abs(estimated_raw_bg - correspondingParakeetEntry.age_adjusted_raw_value) > 20) {
+        estimateRawAtCalibration = correspondingParakeetEntry.age_adjusted_raw_value;
     } else {
-        estimate_raw_at_time_of_calibration = estimated_raw_bg;
+        estimateRawAtCalibration = estimated_raw_bg;
     }
 
-    createCalibration(meterBg, sensor, parakeetEntry, estimate_raw_at_time_of_calibration);
+    let newCal = createCalibration(meterBg, sensor, correspondingParakeetEntry, estimateRawAtCalibration, currentTime);
 
-    // TODO: SAVE ALL THESE TO DB
+    latestCalibrations.push(newCal);
 
-    calculate_w_l_s()
+    return calculate_w_l_s(latestCalibrations)
 }
 
-// Requires: meterBg > 40 && meterBg < 400, sensor existing, parakeetEntry during < 15 min
 // Parakeet entry should have nb_slope
-function createCalibration(meterBg, sensor, parakeetEntry, estimate_raw_at_time_of_calibration) {
+function createCalibration(meterBg, sensor, parakeetEntry, estimateRawAtCalibration, currentTime) {
 
     return {
-        timestamp: app.currentTime(),
-        slopeConfidence: Math.min(Math.max(((4 - Math.abs((parakeetEntry.nb_slope) * 60000)) / 4), 0), 1), // DIFFERENCE
-        checkIn: false, // ???
-        sensorConfidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
+        timestamp: currentTime,
+        slope_confidence: Math.min(Math.max(((4 - Math.abs((parakeetEntry.nb_slope) * 60000)) / 4), 0), 1),
+        sensor_confidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
         slope: 1,
         sensorId: sensor._id,
         bg: meterBg,
         intercept: meterBg,
-        rawValue: parakeetEntry.unfiltered,
-        rawTimestamp: parakeetEntry.date,
-        adjustedRawValue: parakeetEntry.unfiltered, // ???
-        estimateRawAtTimeOfCalibration: estimate_raw_at_time_of_calibration, // DIFFERENCE
-        sensor_age_at_time_of_estimation: app.currentTime() - sensor.start
+        scale: 1,
+        raw_value: parakeetEntry.unfiltered,
+        raw_timestamp: parakeetEntry.date,
+        adjusted_raw_value: parakeetEntry.age_adjusted_raw_value,
+        estimate_raw_at_calibration: estimateRawAtCalibration,
+        sensor_age_at_calibration: currentTime - sensor.start
     };
 
 }
 
 function calculateWeight(calibrations) {
-    let firstTimeStarted = _.first(calibrations).sensor_age_at_time_of_estimation;
-    let lastTimeStarted = _.last(calibrations).sensor_age_at_time_of_estimation;
-    let time_percentage = Math.min(((calibration.sensor_age_at_time_of_estimation - firstTimeStarted) / (lastTimeStarted - firstTimeStarted)) / (.85), 1);
+    let firstTimeStarted = _.first(calibrations).sensor_age_at_calibration;
+    let lastTimeStarted = _.last(calibrations).sensor_age_at_calibration;
+    let time_percentage = Math.min(((calibration.sensor_age_at_calibration - firstTimeStarted) / (lastTimeStarted - firstTimeStarted)) / (.85), 1);
     time_percentage = (time_percentage + .01);
     return Math.max((((((calibration.slope_confidence + calibration.sensor_confidence) * (time_percentage))) / 2) * 100), 1);
 }
@@ -175,11 +129,11 @@ function slopeOOBHandler(calibrations, status) {
             if ((Math.abs(lastCal.bg - lastCal.estimate_bg_at_time_of_calibration) < 30) && (calibrations[1].possible_bad != null && calibrations[1].possible_bad == true)) {
                 return calibrations[1].slope;
             } else {
-                return Math.max(((-0.048) * (lastCal.sensor_age_at_time_of_estimation / (60000 * 60 * 24))) + 1.1, DEX_PARAMETERS.DEFAULT_LOW_SLOPE_LOW);
+                return Math.max(((-0.048) * (lastCal.sensor_age_at_calibration / (60000 * 60 * 24))) + 1.1, DEX_PARAMETERS.DEFAULT_LOW_SLOPE_LOW);
             }
         }
         else if (calCount === 2) {
-            return Math.max(((-0.048) * (lastCal.sensor_age_at_time_of_estimation / (60000 * 60 * 24))) + 1.1, DEX_PARAMETERS.DEFAULT_LOW_SLOPE_HIGH);
+            return Math.max(((-0.048) * (lastCal.sensor_age_at_calibration / (60000 * 60 * 24))) + 1.1, DEX_PARAMETERS.DEFAULT_LOW_SLOPE_HIGH);
         }
         else {
             return DEX_PARAMETERS.DEFAULT_SLOPE;
@@ -207,26 +161,26 @@ function calculateIntercept(cal, useEstimate) {
     return cal.bg - (raw * cal.slope);
 }
 
-function calculate_w_l_s() {
+// Requires 4 days of calibrations
+function calculate_w_l_s(calibrations) {
     let l = 0;
     let m = 0;
     let n = 0;
     let p = 0;
     let q = 0;
 
-    let calibrations = [ {}, {} ]; // TODO: get last 4 days of calibrations
     let calCount = calibrations.length;
 
     if (calCount == 0) {
         return;
     }
 
+    let lastCalibration = _.last(calibrations);
+
     if (calCount == 1) {
-        let calibration = calibrations[0];
-        calibrations[0].slope = 1;
-        calibrations[0].intercept = calculateIntercept(calibration, false);
-        // TODO: save cal back to db
-        return;
+        lastCalibration.slope = 1;
+        lastCalibration.intercept = calculateIntercept(calibration, false);
+        return lastCalibration;
     }
 
     _.each(calibrations, calibration => {
@@ -238,7 +192,6 @@ function calculate_w_l_s() {
         q += (weight * calibration.estimate_raw_at_time_of_calibration * calibration.bg);
     });
 
-    let lastCalibration = _.last(calibrations);
     const weight = (calculateWeight(calibrations) * (calCount * 0.14));
     l += (weight);
     m += (weight * lastCalibration.estimate_raw_at_time_of_calibration);
@@ -256,7 +209,6 @@ function calculate_w_l_s() {
             lastCalibration.possible_bad = true; // TODO: WHY?
         }
         lastCalibration.intercept = calculateIntercept(lastCalibration, true);
-        // TODO: SAVE TO DB
     }
 
     if ((calCount === 2 && lastCalibration.slope > DEX_PARAMETERS.HIGH_SLOPE_1) || (lastCalibration.slope > DEX_PARAMETERS.HIGH_SLOPE_2)) {
@@ -265,14 +217,14 @@ function calculate_w_l_s() {
             lastCalibration.possible_bad = true; // TODO: WHY?
         }
         lastCalibration.intercept = calculateIntercept(lastCalibration, true);
-        // TODO: SAVE TO DB
     }
 
     if ((lastCalibration.slope === 0) && (lastCalibration.intercept === 0)) {
         lastCalibration.slope_confidence = 0;
         lastCalibration.sensor_confidence = 0;
-        // TODO: SAVE TO DB
     }
+
+    return lastCalibration;
 }
 
 
@@ -313,7 +265,7 @@ function findNewRawParameters(latestEntries) {
             rc:  -1 * ((latest.rb * x1) - y1)
         };
     } else {
-        let latest_entry = entries[0]; // TODO: THIS SHOULD BE LATEST WITH EVEN OTHER SENSOR
+        let latest_entry = entries[0];
 
         return {
             ra: 0,
@@ -322,3 +274,51 @@ function findNewRawParameters(latestEntries) {
         };
     }
 }
+
+//function initialCalibration(bg1, bg2, sensor, latestEntries) {
+//
+//    let lastTwoEntries = latestEntries.slice(Math.max(latestEntries.length - 2, 1));
+//    let bgReading1 = lastTwoEntries[0];
+//    let bgReading2 = lastTwoEntries[1];
+//    let highBgReading;
+//    let lowBgReading;
+//    let higher_bg = Math.max(bg1, bg2);
+//    let lower_bg = Math.min(bg1, bg2);
+//
+//    if (bgReading1.unfiltered > bgReading2.unfiltered) {
+//        highBgReading = bgReading1;
+//        lowBgReading = bgReading2;
+//    } else {
+//        highBgReading = bgReading2;
+//        lowBgReading = bgReading1;
+//    }
+//
+//    let higherCal = createInitialCalibration(higher_bg, sensor, highBgReading);
+//    let lowerCal = createInitialCalibration(lower_bg, sensor, lowBgReading);
+//
+//    highBgReading.nb_glucose_value = higher_bg;
+//    lowBgReading.nb_glucose_value = lower_bg;
+//
+//    // TODO: SAVE ALL THESE TO DB
+//
+//    calculate_w_l_s()
+//
+//}
+//
+//function createInitialCalibration(meterBg, sensor, parakeetEntry) {
+//    return {
+//        timestamp: app.currentTime(),
+//        slopeConfidence: 0.5,
+//        checkIn: false, // ???
+//        sensorConfidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
+//        slope: 1,
+//        sensorId: sensor._id,
+//        bg: meterBg,
+//        intercept: meterBg,
+//        rawValue: parakeetEntry.unfiltered,
+//        rawTimestamp: parakeetEntry.date,
+//        adjustedRawValue: parakeetEntry.unfiltered, // ???
+//        estimateRawAtTimeOfCalibration: parakeetEntry.unfiltered, // ???
+//        sensor_age_at_calibration: app.currentTime() - sensor.start
+//    };
+//}
