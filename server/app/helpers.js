@@ -87,11 +87,13 @@ export function convertRawTransmitterData(app, entry, latestCalibration, latestS
 
 function calculateAgeAdjustedRawValue(raw_data, timestamp, sensor){
     const AGE_ADJUSTMENT_FACTOR = 0.45;
+    const AGE_ADJUSTMENT_TIME = 86400000 * 1.9;
+
     let time_since_sensor_started = timestamp - sensor.start;
     const adjust_for = AGE_ADJUSTMENT_TIME - time_since_sensor_started;
-    const AGE_ADJUSTMENT_TIME = 86400000 * 1.9;
+
     if (adjust_for > 0) {
-        age_adjusted_raw_value = ((AGE_ADJUSTMENT_FACTOR * (adjust_for / AGE_ADJUSTMENT_TIME)) * raw_data) + raw_data;
+        return ((AGE_ADJUSTMENT_FACTOR * (adjust_for / AGE_ADJUSTMENT_TIME)) * raw_data) + raw_data;
     } else {
         return raw_data;
     }

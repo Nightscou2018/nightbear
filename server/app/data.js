@@ -75,13 +75,11 @@ export default app => {
     }
 
     function parakeetDataEntry(datum) {
-        return getLatestCalibration()
-            .then(cal => helpers.convertRawTransmitterData(app, datum, cal, {
-                sensorId: '239429348', // TODO: replace with real data
-                start: 1485086103637,
-                end: null,
-                placement: 'arm'
-            }))
+        return Promise.all([
+            app.data.getLatestCalibration(),
+            app.data.getLatestSensor()
+        ])
+            .then(([cal, sensor]) => helpers.convertRawTransmitterData(app, datum, cal, sensor))
             .then(convertedData =>
                 Promise.all([
                     dbPUT('sensor-entries-raw', convertedData.sensorEntriesRaw),
@@ -130,6 +128,18 @@ export default app => {
             limit: 1
         })
         .then(res => res.rows[0] ? res.rows[0].doc : {});
+    }
+
+    // Promises the single latest sensor
+    function getLatestSensor() {
+        return app.pouchDB.allDocs({
+                include_docs: true,
+                descending: true,
+                startkey: 'sensors/_',
+                endkey: 'sensors/',
+                limit: 1
+            })
+            .then(res => res.rows[0] ? res.rows[0].doc : {});
     }
 
     // Promises entries from the last durationMs

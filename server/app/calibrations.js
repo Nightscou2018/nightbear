@@ -42,13 +42,6 @@ let calibration = {
     second_scale: '' // REMOVED
 };
 
-const sensor = {
-    sensorId: '239429348',
-    start: 2342342342,
-    end: 2349234243,
-    placement: 'arm'
-};
-
 export default app => {
 
     const log = app.logger(__filename);
@@ -110,7 +103,7 @@ function createInitialCalibration(meterBg, sensor, parakeetEntry) {
         checkIn: false, // ???
         sensorConfidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
         slope: 1,
-        sensorId: sensor.sensorId,
+        sensorId: sensor._id,
         bg: meterBg,
         intercept: meterBg,
         rawValue: parakeetEntry.unfiltered,
@@ -150,7 +143,7 @@ function createCalibration(meterBg, sensor, parakeetEntry, estimate_raw_at_time_
         checkIn: false, // ???
         sensorConfidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
         slope: 1,
-        sensorId: sensor.sensorId,
+        sensorId: sensor._id,
         bg: meterBg,
         intercept: meterBg,
         rawValue: parakeetEntry.unfiltered,
