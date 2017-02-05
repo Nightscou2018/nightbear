@@ -52,6 +52,7 @@ export default app => {
         generateCalibration
     };
 
+    // meterBg in mgdl, latestEntries 30min latestCalibrations 4days
     function generateCalibration(meterBg, sensor, latestEntries, latestCalibrations) {
         let correspondingParakeetEntry = _.last(latestEntries);
         let currentTime = app.currentTime();
@@ -67,7 +68,7 @@ export default app => {
             return;
         }
 
-        nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntries, latestCalibrations, currentTime)
+        return nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntries, latestCalibrations, currentTime)
     }
 };
 
