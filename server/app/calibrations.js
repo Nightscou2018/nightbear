@@ -1,3 +1,5 @@
+/** These calculations have been adapted from https://github.com/jamorham/xDrip-plus  **/
+
 import _ from 'lodash';
 import * as helpers from './helpers';
 
