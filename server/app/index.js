@@ -3,6 +3,7 @@ import analyser from './analyser';
 import data from './data';
 import server from './server';
 import profile from './profile';
+import calibrations from './calibrations';
 
 const modules = {
     logger: null,
@@ -14,7 +15,8 @@ const modules = {
     analyser,
     data,
     server,
-    profile
+    profile,
+    calibrations,
 };
 
 export default function(overrides = {}) {

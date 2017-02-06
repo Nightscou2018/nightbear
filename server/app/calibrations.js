@@ -121,7 +121,7 @@ function calculateWeight(calibrations) {
 }
 
 function slopeOOBHandler(calibrations, status) {
-    let calibrations = _.slice(calibrations, 0, -3); // get last three
+    calibrations = _.slice(calibrations, 0, -3); // get last three
     const calCount = calibrations.length;
     let lastCal = _.last(calibrations);
 

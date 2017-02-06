@@ -76,9 +76,9 @@ export default app => {
 
     function parakeetDataEntry(datum) {
         return Promise.all([
-            app.data.getLatestEntry(20 * helpers.MIN_IN_MS),
-            app.data.getLatestCalibration(),
-            app.data.getLatestSensor()
+            getLatestEntry(20 * helpers.MIN_IN_MS),
+            getLatestCalibration(),
+            getLatestSensor()
         ])
             .then(([previousEntry, cal, sensor]) => helpers.convertRawTransmitterData(app, datum, previousEntry, cal, sensor))
             .then(convertedData =>

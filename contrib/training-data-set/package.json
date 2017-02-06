@@ -1,0 +1,15 @@
+{
+  "name": "nightbear-training-data-set",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "start": "../../server/node_modules/.bin/babel-node build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "pouchdb": "^6.1.1",
+    "pouchdb-adapter-memory": "^6.1.1"
+  }
+}

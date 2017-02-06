@@ -87,6 +87,7 @@ export function convertRawTransmitterData(app, entry, previousEntry, latestCalib
 }
 
 export function calculateSlope(older, newer) {
+    if (!older) return 0;
     return ((newer.nb_glucose_value - older.nb_glucose_value) / (newer.date - older.date)) * MIN_IN_MS * 5;
 }
 
