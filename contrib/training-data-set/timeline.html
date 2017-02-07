@@ -45,6 +45,12 @@
     function getTrainingData() {
       return fetch(filename)
         .then(res => res.json())
+        .then(json =>
+            fetch('output.json')
+                .then(res => res.json())
+                .catch(() => ({}))
+                .then(res => Object.assign(json, res))
+        )
     }
 
     function toHighchartsSeries(res) {
@@ -61,6 +67,11 @@
             {
                 name: 'Nightbear (guess)',
                 data: res.nightbear.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
+                turboThreshold: 10000,
+            },
+            {
+                name: 'Parakeet (guess)',
+                data: res.parakeet.filter(d => d.nb_glucose_value).map(d => ({ x: d.date, y: d.nb_glucose_value })),
                 turboThreshold: 10000,
             },
         ];

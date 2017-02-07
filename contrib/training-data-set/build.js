@@ -19,7 +19,8 @@ function main() {
     input = take(drop(sortBy(DATA.meter.concat(DATA.parakeet), 'date'), SKIP), TAKE);
     console.log(input);
     runFakeInputs()
-        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 0.5))
+        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 1))
+        .then(writeOutputJson)
         .then(
             x => console.log('SUCCESS:', x),
             e => console.log('ERR:', e.stack)
@@ -105,4 +106,14 @@ function inputParakeet(next) {
         lf: next.filtered,
         ts: 0,
     });
+}
+
+function writeOutputJson(entries) {
+    require('fs').writeFileSync('./output.json', JSON.stringify({
+        parakeet: entries.map(d => ({
+            date: d.date,
+            nb_glucose_value: d.nb_glucose_value,
+        }))
+    }, null, 4));
+    return entries;
 }
