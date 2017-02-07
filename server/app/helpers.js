@@ -109,12 +109,13 @@ export function convertCurrentTimeForParakeet(app, timeEntry) {
     return app.currentTime() - parseInt(timeEntry, 10)
 }
 
+// TODO, WON'T WORK WITH REGULAR CALIBRATIONS
 function cleanValues (entry, cal) {
     return {
         unfiltered: parseInt(entry.unfiltered) || 0,
         filtered: parseInt(entry.filtered) || 0,
         scale: parseFloat(cal.scale) || 0,
-        intercept: parseFloat(cal.intercept) || 0,
-        slope: parseFloat(cal.slope) || 0
+        intercept: parseFloat((cal.intercept * -1000) / cal.slope) || 0,
+        slope: parseFloat(1000/cal.slope) || 0
     };
 }

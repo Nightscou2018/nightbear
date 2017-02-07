@@ -28,7 +28,7 @@ let calibration = {
     slope: '',
     intercept: '',
     distance_from_estimate: '', // REMOVED
-    estimate_raw_at_time_of_calibration: '',
+    estimate_raw_at_calibration: '',
     estimate_bg_at_time_of_calibration: '',
     uuid: '', // REMOVED
     sensor_uuid: '', // REMOVED
@@ -158,7 +158,7 @@ function slopeOOBHandler(calibrations, status) {
 }
 
 function calculateIntercept(cal, useEstimate) {
-    let raw = useEstimate ? cal.estimate_raw_at_time_of_calibration : cal.raw_value;
+    let raw = useEstimate ? cal.estimate_raw_at_calibration : cal.raw_value;
     return cal.bg - (raw * cal.slope);
 }
 
@@ -187,20 +187,26 @@ function calculate_w_l_s(calibrations) {
     _.each(calibrations, calibration => {
         const weight = calculateWeight(calibrations);
         l += (weight);
-        m += (weight * calibration.estimate_raw_at_time_of_calibration);
-        n += (weight * calibration.estimate_raw_at_time_of_calibration * calibration.estimate_raw_at_time_of_calibration);
+        m += (weight * calibration.estimate_raw_at_calibration);
+        n += (weight * calibration.estimate_raw_at_calibration * calibration.estimate_raw_at_calibration);
         p += (weight * calibration.bg);
-        q += (weight * calibration.estimate_raw_at_time_of_calibration * calibration.bg);
+        q += (weight * calibration.estimate_raw_at_calibration * calibration.bg);
     });
 
     const weight = (calculateWeight(calibrations) * (calCount * 0.14));
     l += (weight);
-    m += (weight * lastCalibration.estimate_raw_at_time_of_calibration);
-    n += (weight * lastCalibration.estimate_raw_at_time_of_calibration * lastCalibration.estimate_raw_at_time_of_calibration);
+    m += (weight * lastCalibration.estimate_raw_at_calibration);
+    n += (weight * lastCalibration.estimate_raw_at_calibration * lastCalibration.estimate_raw_at_calibration);
     p += (weight * lastCalibration.bg);
-    q += (weight * lastCalibration.estimate_raw_at_time_of_calibration * lastCalibration.bg);
+    q += (weight * lastCalibration.estimate_raw_at_calibration * lastCalibration.bg);
 
     let d = (l * n) - (m * m);
+
+    // TODO
+    if (d == 0) {
+        d = 0.00000001
+    }
+
     lastCalibration.intercept = ((n * p) - (m * q)) / d;
     lastCalibration.slope = ((l * q) - (m * p)) / d;
 
