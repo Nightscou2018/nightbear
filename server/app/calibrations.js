@@ -78,8 +78,8 @@ function nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntr
     let estimateRawAtCalibration;
     let params = findNewRawParameters(latestEntries);
     let estimated_raw_bg = params.ra * currentTime * currentTime + (params.rb * currentTime) + params.rc;
-    if (Math.abs(estimated_raw_bg - correspondingParakeetEntry.age_adjusted_raw_value) > 20) {
-        estimateRawAtCalibration = correspondingParakeetEntry.age_adjusted_raw_value;
+    if (Math.abs(estimated_raw_bg - (correspondingParakeetEntry.age_adjusted_raw_value / 1000)) > 20) {
+        estimateRawAtCalibration = correspondingParakeetEntry.age_adjusted_raw_value / 1000;
     } else {
         estimateRawAtCalibration = estimated_raw_bg;
     }
@@ -102,9 +102,9 @@ function createCalibration(meterBg, sensor, parakeetEntry, estimateRawAtCalibrat
         bg: meterBg,
         intercept: meterBg,
         scale: 1,
-        raw_value: parakeetEntry.unfiltered,
+        raw_value: parakeetEntry.unfiltered / 1000,
         raw_timestamp: parakeetEntry.date,
-        adjusted_raw_value: parakeetEntry.age_adjusted_raw_value,
+        adjusted_raw_value: parakeetEntry.age_adjusted_raw_value / 1000,
         estimate_raw_at_calibration: estimateRawAtCalibration,
         sensor_age_at_calibration: currentTime - sensor.start,
         type: 'cal',
@@ -113,16 +113,16 @@ function createCalibration(meterBg, sensor, parakeetEntry, estimateRawAtCalibrat
 
 }
 
-function calculateWeight(calibrations) {
-    let firstTimeStarted = _.first(calibrations).sensor_age_at_calibration;
-    let lastTimeStarted = _.last(calibrations).sensor_age_at_calibration;
-    let time_percentage = Math.min(((calibration.sensor_age_at_calibration - firstTimeStarted) / (lastTimeStarted - firstTimeStarted)) / (.85), 1);
+function calculateWeight(latestCal) {
+    let firstTimeStarted = 0; // TODO: sensor age for first cal for this sensor
+    let lastTimeStarted = latestCal.sensor_age_at_calibration;
+    let time_percentage = Math.min(((latestCal.sensor_age_at_calibration - firstTimeStarted) / (lastTimeStarted - firstTimeStarted)) / (.85), 1);
     time_percentage = (time_percentage + .01);
-    return Math.max((((((calibration.slope_confidence + calibration.sensor_confidence) * (time_percentage))) / 2) * 100), 1);
+    return Math.max((((((latestCal.slope_confidence + latestCal.sensor_confidence) * (time_percentage))) / 2) * 100), 1);
 }
 
 function slopeOOBHandler(calibrations, status) {
-    calibrations = _.slice(calibrations, 0, -3); // get last three
+    calibrations = _.takeRight(calibrations, 3); // get last three
     const calCount = calibrations.length;
     let lastCal = _.last(calibrations);
 
@@ -181,12 +181,12 @@ function calculate_w_l_s(calibrations) {
 
     if (calCount == 1) {
         lastCalibration.slope = 1;
-        lastCalibration.intercept = calculateIntercept(calibration, false);
+        lastCalibration.intercept = calculateIntercept(lastCalibration, false);
         return lastCalibration;
     }
 
     _.each(calibrations, calibration => {
-        const weight = calculateWeight(calibrations);
+        const weight = calculateWeight(lastCalibration);
         l += (weight);
         m += (weight * calibration.estimate_raw_at_calibration);
         n += (weight * calibration.estimate_raw_at_calibration * calibration.estimate_raw_at_calibration);
@@ -194,7 +194,7 @@ function calculate_w_l_s(calibrations) {
         q += (weight * calibration.estimate_raw_at_calibration * calibration.bg);
     });
 
-    const weight = (calculateWeight(calibrations) * (calCount * 0.14));
+    const weight = (calculateWeight(lastCalibration) * (calCount * 0.14));
     l += (weight);
     m += (weight * lastCalibration.estimate_raw_at_calibration);
     n += (weight * lastCalibration.estimate_raw_at_calibration * lastCalibration.estimate_raw_at_calibration);
@@ -202,11 +202,9 @@ function calculate_w_l_s(calibrations) {
     q += (weight * lastCalibration.estimate_raw_at_calibration * lastCalibration.bg);
 
     let d = (l * n) - (m * m);
-    d = 0.0001
 
     lastCalibration.intercept = ((n * p) - (m * q)) / d;
     lastCalibration.slope = ((l * q) - (m * p)) / d;
-    console.log(lastCalibration.intercept)
 
     if ((calCount === 2 && lastCalibration.slope < DEX_PARAMETERS.LOW_SLOPE_1) || (lastCalibration.slope < DEX_PARAMETERS.LOW_SLOPE_2)) {
         lastCalibration.slope = slopeOOBHandler(calibrations, 0);
@@ -229,7 +227,6 @@ function calculate_w_l_s(calibrations) {
         lastCalibration.sensor_confidence = 0;
     }
 
-    console.log(lastCalibration.intercept)
     return lastCalibration;
 }
 
@@ -243,11 +240,11 @@ function findNewRawParameters(latestEntries) {
         let second_latest = entries[1];
         let third_latest = entries[2];
 
-        let y3 = latest.age_adjusted_raw_value;
+        let y3 = latest.age_adjusted_raw_value / 1000;
         let x3 = latest.date;
-        let y2 = second_latest.age_adjusted_raw_value;
+        let y2 = second_latest.age_adjusted_raw_value / 1000;
         let x2 = second_latest.date;
-        let y1 = third_latest.age_adjusted_raw_value;
+        let y1 = third_latest.age_adjusted_raw_value / 1000;
         let x1 = third_latest.date;
 
         return {
@@ -260,9 +257,9 @@ function findNewRawParameters(latestEntries) {
         let latest = entries[0];
         let second_latest = entries[1];
 
-        let y2 = latest.age_adjusted_raw_value;
+        let y2 = latest.age_adjusted_raw_value / 1000;
         let x2 = latest.date;
-        let y1 = second_latest.age_adjusted_raw_value;
+        let y1 = second_latest.age_adjusted_raw_value / 1000;
         let x1 = second_latest.date;
 
         return {
@@ -276,7 +273,7 @@ function findNewRawParameters(latestEntries) {
         return {
             ra: 0,
             rb: 0,
-            rc: latest_entry ? latest_entry.age_adjusted_raw_value : 105
+            rc: latest_entry ? latest_entry.age_adjusted_raw_value / 1000 : 105
         };
     }
 }

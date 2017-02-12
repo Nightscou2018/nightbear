@@ -58,10 +58,10 @@ function getBaseCalibration() {
         bg: 209,
         intercept: -27.68280052, // (30000 * parakeet slope) / -1000
         scale: 1,
-        raw_value: 214592,
+        raw_value: 214,
         raw_timestamp: input[0].date - helpers.HOUR_IN_MS,
-        adjusted_raw_value: 214592,
-        estimate_raw_at_calibration: 214592,
+        adjusted_raw_value: 214,
+        estimate_raw_at_calibration: 214,
         sensor_age_at_calibration: input[0].date - (helpers.HOUR_IN_MS * 100)
     };
 }
