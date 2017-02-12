@@ -8,22 +8,22 @@ import { sortBy, drop, take } from 'lodash';
 PouchDB.plugin(require('pouchdb-adapter-memory'));
 
 const SKIP = 110; // how many DATA points to skip
-const TAKE = 10; // how many DATA points to include
+const TAKE = 1750; // how many DATA points to include
 
 let app, input;
 
-main();
+window.getBuiltData = main;
 
 function main() {
     app = createTestApp();
     input = take(drop(sortBy(DATA.meter.concat(DATA.parakeet), 'date'), SKIP), TAKE);
     //console.log(input);
-    app.data.nightscoutUploaderPost(getBaseCalibration())
+    return app.data.nightscoutUploaderPost(getBaseCalibration())
         .then(runFakeInputs)
-        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 5))
+        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 24 * 10))
         // .then(writeOutputJson)
         .then(
-            x => console.log('SUCCESS:', x),
+            x => console.log('SUCCESS:', x) || x,
             e => console.log('ERR:', e.stack)
         );
 }

@@ -25,7 +25,7 @@
 
     // var filename = 'cleaned/' + location.hash.replace(/^#/, '') + '.json';
     var filename = 'week-47.json';
-/*
+
     getTrainingData()
       .then(toHighchartsSeries)
       .then(renderChart)
@@ -33,7 +33,7 @@
         res => console.info(res) || res,
         err => console.warn(err)
       )
-*/
+
     function changeSGVUnit(sgv) {
       return Math.round((sgv / 18) * 10) / 10;
     }
@@ -43,15 +43,23 @@
       return (new Date(ts) + '').replace(/.*?(\d+:\d+:\d+).*/, '$1');
     }
 
+    // mmol/L => mg/dL
+    function convert(mmolPerL) {
+      return mmolPerL * 18
+    }
+
     function getTrainingData() {
-      return fetch(filename)
-        .then(res => res.json())
-        .then(json =>
-            fetch('output.json')
-                .then(res => res.json())
-                .catch(() => ({}))
-                .then(res => Object.assign(json, res))
-        )
+      return Promise.all([
+        fetch(filename)
+          .then(res => res.json()),
+        getBuiltData()
+        //   .then(entries => entries.map(doc => ({
+        //     date: doc.date,
+        //     value: convert(doc.nb_glucose_value),
+        //   })))
+      ]).then(([ truths, calc ]) => Object.assign(truths, {
+        parakeet: calc,
+      }))
     }
 
     function toHighchartsSeries(res) {
@@ -60,11 +68,11 @@
                 name: 'Meter (truth)',
                 data: res.meter.map(d => ({ x: d.date, y: changeSGVUnit(d.value) }))
             },
-            {
-                name: 'Dexcom (truth)',
-                data: res.dexcom.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
-                turboThreshold: 10000,
-            },
+            // {
+            //     name: 'Dexcom (truth)',
+            //     data: res.dexcom.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
+            //     turboThreshold: 10000,
+            // },
             {
                 name: 'Nightbear (guess)',
                 data: res.nightbear.map(d => ({ x: d.date, y: changeSGVUnit(d.value) })),
@@ -115,6 +123,7 @@
           ]
         },
         tooltip: {
+          enabled: false,
           crosshairs: true,
           formatter: function() {
             return '' +
