@@ -20,12 +20,12 @@ function main() {
     //console.log(input);
     app.data.nightscoutUploaderPost(getBaseCalibration())
         .then(runFakeInputs)
-        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 0.5))
+        .then(() => app.data.getLatestEntries(helpers.HOUR_IN_MS * 5))
         // .then(writeOutputJson)
-        //.then(
-        //    x => console.log('SUCCESS:', x),
-        //    e => console.log('ERR:', e.stack)
-        //);
+        .then(
+            x => console.log('SUCCESS:', x),
+            e => console.log('ERR:', e.stack)
+        );
 }
 
 function createTestApp() {
@@ -49,26 +49,20 @@ function createTestApp() {
 
 function getBaseCalibration() {
     return {
-        // "device": "dexcom",
-        // "scale": 1,
-        // "dateString": "Sat Jan 14 20:15:57 EET 2017",
-        // "date": input[0].date - 1000 * 60 * 60,
-        // "type": "cal",
-        // "intercept": 30000,
-        // "slope": 890.5885872888931
-        timestamp: input[0].date - helpers.HOUR_IN_MS,
+        type: 'cal', // for bear
+        date: input[0].date - helpers.HOUR_IN_MS, // for bear
         slope_confidence: 1,
-        sensor_confidence: 0.9725599999999999,
-        slope: 1,
+        sensor_confidence: 1,
+        slope: 0.9227600172, // 1000 / (1083.7053853375437)
         sensorId: undefined,
         bg: 209,
-        intercept: 300,
+        intercept: -27.68280052, // (30000 * parakeet slope) / -1000
         scale: 1,
         raw_value: 214592,
         raw_timestamp: input[0].date - helpers.HOUR_IN_MS,
         adjusted_raw_value: 214592,
         estimate_raw_at_calibration: 214592,
-        sensor_age_at_calibration: 87335000
+        sensor_age_at_calibration: input[0].date - (helpers.HOUR_IN_MS * 100)
     };
 }
 
@@ -89,15 +83,16 @@ function runFakeInputs() {
 function inputMeter(next) {
     return Promise.all([
         app.data.getLatestEntries(helpers.HOUR_IN_MS * 0.5),
-        // app.data.getLatestCalibrations(1000 * 60 * 60 * 24 * 4),
+        app.data.getLatestCalibrations(1000 * 60 * 60 * 24 * 4)
     ]).then(([ entries, calibs ]) => {
         const cal = app.calibrations.generateCalibration(
             next.value,
             { start: input[0].date - helpers.HOUR_IN_MS * 24 }, // 1 day before
             entries,
-            [ getBaseCalibration() ]
+            calibs
         );
         console.log('PRODUCED CALIBRATION:', cal);
+        return app.data.nightscoutUploaderPost(cal);
     });
 }
 

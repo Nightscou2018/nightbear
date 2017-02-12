@@ -95,7 +95,6 @@ function nextCalibration(meterBg, correspondingParakeetEntry, sensor, latestEntr
 function createCalibration(meterBg, sensor, parakeetEntry, estimateRawAtCalibration, currentTime) {
 
     return {
-        timestamp: currentTime,
         slope_confidence: Math.min(Math.max(((4 - Math.abs((parakeetEntry.nb_slope) * 60000)) / 4), 0), 1),
         sensor_confidence: Math.max(((-0.0018 * meterBg * meterBg) + (0.6657 * meterBg) + 36.7505) / 100, 0),
         slope: 1,
@@ -107,7 +106,9 @@ function createCalibration(meterBg, sensor, parakeetEntry, estimateRawAtCalibrat
         raw_timestamp: parakeetEntry.date,
         adjusted_raw_value: parakeetEntry.age_adjusted_raw_value,
         estimate_raw_at_calibration: estimateRawAtCalibration,
-        sensor_age_at_calibration: currentTime - sensor.start
+        sensor_age_at_calibration: currentTime - sensor.start,
+        type: 'cal',
+        date: currentTime
     };
 
 }
@@ -201,14 +202,11 @@ function calculate_w_l_s(calibrations) {
     q += (weight * lastCalibration.estimate_raw_at_calibration * lastCalibration.bg);
 
     let d = (l * n) - (m * m);
-
-    // TODO
-    if (d == 0) {
-        d = 0.00000001
-    }
+    d = 0.0001
 
     lastCalibration.intercept = ((n * p) - (m * q)) / d;
     lastCalibration.slope = ((l * q) - (m * p)) / d;
+    console.log(lastCalibration.intercept)
 
     if ((calCount === 2 && lastCalibration.slope < DEX_PARAMETERS.LOW_SLOPE_1) || (lastCalibration.slope < DEX_PARAMETERS.LOW_SLOPE_2)) {
         lastCalibration.slope = slopeOOBHandler(calibrations, 0);
@@ -231,6 +229,7 @@ function calculate_w_l_s(calibrations) {
         lastCalibration.sensor_confidence = 0;
     }
 
+    console.log(lastCalibration.intercept)
     return lastCalibration;
 }
 
@@ -262,9 +261,9 @@ function findNewRawParameters(latestEntries) {
         let second_latest = entries[1];
 
         let y2 = latest.age_adjusted_raw_value;
-        let x2 = latest.timestamp;
+        let x2 = latest.date;
         let y1 = second_latest.age_adjusted_raw_value;
-        let x1 = second_latest.timestamp;
+        let x1 = second_latest.date;
 
         return {
             rb: y1 === y2 ? 0 : (y2 - y1)/(x2 - x1),

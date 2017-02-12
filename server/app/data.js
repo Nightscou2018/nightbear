@@ -22,7 +22,8 @@ export default app => {
         saveTestData,
         legacyPost,
         getLegacyEntries,
-        getProfileSettings
+        getProfileSettings,
+        getLatestCalibrations
     };
 
     // @example dbPUT('sensor-entries', { ... }) => Promise
@@ -129,6 +130,16 @@ export default app => {
             limit: 1
         })
         .then(res => res.rows[0] ? res.rows[0].doc : {});
+    }
+
+    // Promises all calibrations inside durationMs
+    function getLatestCalibrations(durationMs) {
+        return app.pouchDB.allDocs({
+            include_docs: true,
+            startkey: 'calibrations/' + helpers.isoTimestamp(app.currentTime() - durationMs),
+            endkey: 'calibrations/' + helpers.isoTimestamp(app.currentTime())
+        })
+        .then(res => res.rows.map(row => row.doc));
     }
 
     // Promises the single latest sensor
