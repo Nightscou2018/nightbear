@@ -8,6 +8,10 @@ import { debounce } from 'lodash';
 import { createCouchDbStorage } from 'core/storage/couchDbStorage';
 import { ReplicationDirection } from 'web/app/modules/pouchDb/state';
 import { actions } from 'web/app/modules/actions';
+import { Storage } from 'core/storage/storage';
+import { getModeratedEntriesFeed } from 'core/entries/entries';
+import { NO_LOGGING } from 'server/utils/logging';
+import { calculateHba1c, DAY_IN_MS } from 'core/calculations/calculations';
 
 const LOCAL_DB_ACTIVE_DEBOUNCE = 100;
 export const DB_REPLICATION_BATCH_SIZE = 500;
@@ -79,6 +83,10 @@ function startReplication(remoteDbUrl: string, dispatch: Dispatch) {
     });
     dispatchFromChanges(changes, dispatch);
   });
+
+  // Temporary calculation
+  calculateHba1cValues(storage);
+
   // Return our DB's & a dispose function:
   return {
     storage,
@@ -127,4 +135,21 @@ function dispatchFromReplication(
     .on('denied', err => dispatch(actions.REPLICATION_EMITTED_DENIED(direction, err)))
     .on('complete', info => dispatch(actions.REPLICATION_EMITTED_COMPLETE(direction, info)))
     .on('error', err => dispatch(actions.REPLICATION_EMITTED_ERROR(direction, err)));
+}
+
+function calculateHba1cValues(storage: Storage) {
+  const mockContext = {
+    httpPort: 80,
+    timestamp: () => Date.now(),
+    log: NO_LOGGING,
+    storage,
+  };
+  const range = 6 * 7 * DAY_IN_MS;
+  const timestampForLastMeasurement = 1528873800000;
+
+  getModeratedEntriesFeed(mockContext, range, timestampForLastMeasurement)
+    .then((entries) => {
+      console.log(5.9);
+      console.log(calculateHba1c(entries));
+    });
 }
