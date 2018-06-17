@@ -19,7 +19,7 @@ describe('api/getHba1cHistory', () => {
   withStorage(createTestStorage => {
 
     it('get Hba1c history', () => {
-      const context = createTestContext(createTestStorage());
+      const context = createTestContext(createTestStorage(), () => 1508672249758 + 100);
       return Promise.resolve()
         .then(() => context.storage.saveModel(mockHba1c))
         .then(() => getHba1cHistory(request, context))

@@ -144,12 +144,37 @@ function calculateHba1cValues(storage: Storage) {
     log: NO_LOGGING,
     storage,
   };
-  const range = 6 * 7 * DAY_IN_MS;
-  const timestampForLastMeasurement = 1528873800000;
 
-  getModeratedEntriesFeed(mockContext, range, timestampForLastMeasurement)
-    .then((entries) => {
-      console.log(5.9);
-      console.log(calculateHba1c(entries));
-    });
+  const actualHba1c = [
+    { date: new Date('2018-06-13'), value: 5.9 },
+    { date: new Date('2018-02-21'), value: 6.3 },
+    { date: new Date('2017-10-11'), value: 6.8 },
+    { date: new Date('2017-02-13'), value: 6.8 },
+    { date: new Date('2016-09-26'), value: 6.8 },
+    { date: new Date('2016-02-04'), value: 7.4 },
+    { date: new Date('2015-10-22'), value: 7.5 },
+    { date: new Date('2015-03-27'), value: 7.6 },
+    { date: new Date('2014-09-25'), value: 7.5 },
+  ];
+
+  const range = DAY_IN_MS;
+
+  actualHba1c.forEach((entry) => {
+    getModeratedEntriesFeed(mockContext, range, entry.date.getTime())
+      .then((entries) => {
+        if (entries.length < 240) {
+          console.log('\n');
+          console.log('Count TOO LOW:', entries.length);
+          return;
+        }
+
+        const calculated = calculateHba1c(entries);
+        console.log('\n');
+        console.log('----- entry start -----');
+        console.log('Count: ', entries.length);
+        console.log('Actual:', entry.value);
+        console.log('Calculated:', calculated);
+        console.log('DIFF:', Math.round(100 * (entry.value - calculated)) / 100);
+      });
+  });
 }

@@ -47,12 +47,12 @@ describe('api/calculateHba1c', () => {
   withStorage(createTestStorage => {
 
     it('calculate hba1c for date', () => {
-      const context = createTestContext(createTestStorage());
+      const context = createTestContext(createTestStorage(), () => 1508672249758 + 100);
 
       const mockHba1c: Hba1c = {
         modelType: 'Hba1c',
         source: 'calculated',
-        timestamp: 1508672249758,
+        timestamp: 1508672249758 + 100,
         hba1cValue: 6.218815331010453,
       };
 
@@ -62,6 +62,7 @@ describe('api/calculateHba1c', () => {
         .then(() => context.storage.saveModel(mockDexcomCalibration))
         .then(() => uploadDexcomEntry(mockRequestBgEntry, context))
         .then(() => calculateHba1cForDate(request, context))
+        .then(() => context.timestamp = () =>  1508672249758 + 1000)
         .then(() => getHba1cHistory(request, context))
         .then(res => assertEqualWithoutMeta(res.responseBody as any, mockResponseJson));
     });

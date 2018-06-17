@@ -34,7 +34,7 @@ export function getModeratedEntriesFeed(
   return getMergedEntriesFeed(context, range, rangeEnd)
     .then((entries) => {
       return entries.map((entry) => {
-        if (entry.bloodGlucose && entry.bloodGlucose < 8) {
+        if (entry.bloodGlucose && entry.bloodGlucose < 7.7) {
           const newBg = Math.max(4.3, entry.bloodGlucose + 1);
           return Object.assign(entry, { bloodGlucose: newBg });
         }
