@@ -1,3 +1,4 @@
+/*
 import { MIN_IN_MS } from 'core/calculations/calculations';
 
 let nextCheck: NodeJS.Timer;
@@ -14,7 +15,8 @@ export function runChecks() {
 
   // TODO: Load content from db and pass it to check functions
   console.log('Running checks');
-  /* return getAnalysisContent()
+  /!* return getAnalysisContent()
      .then(runAnalysis)
-     .then(runAlarmChecks);*/
+     .then(runAlarmChecks);*!/
 }
+*/

@@ -1,5 +1,5 @@
 import { SensorEntry } from 'core/models/model';
-import { reduce } from 'lodash';
+import { reduce, sortBy } from 'lodash';
 import { hasBloodGlucose } from 'server/utils/data';
 
 export const MIN_IN_MS = 60 * 1000;
@@ -55,12 +55,16 @@ export function timestampIsUnderMaxAge(
 
 export function calculateHba1c(entries: SensorEntry[]) {
   const numericEntries = entries.filter(hasBloodGlucose);
-  const sumOfEntries = reduce(numericEntries, (sum, entry) => {
-    return sum + changeBloodGlucoseUnitToMgdl(entry.bloodGlucose);
+  const sortedEntries = sortBy(numericEntries, 'timestamp'); // from older to newer
+  let sumOfWeights = 0;
+
+  const sumOfEntries = reduce(sortedEntries, (sum, entry, index) => {
+    sumOfWeights += index;
+    return sum + (index * changeBloodGlucoseUnitToMgdl(entry.bloodGlucose));
   }, 0);
 
-  const avgGlucose = sumOfEntries / numericEntries.length;
+  const avgGlucose = sumOfEntries / sumOfWeights;
 
   // Base formula (avgGlucose + 46.7) / 28.7) from research, -0.6 from Nightscout
-  return ((avgGlucose + 46.7) / 28.7) - 0.6;
+  return (avgGlucose + 46.7) / 28.7 - 0.1;
 }
