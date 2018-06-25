@@ -1,7 +1,7 @@
 import { Context } from 'core/models/api';
 import { SensorEntry, TimelineModel } from 'core/models/model';
 import { sortBy, unionBy } from 'lodash';
-import { MIN_IN_MS } from 'core/calculations/calculations';
+import { calculateAverageBg, changeBloodGlucoseUnitToMmoll, MIN_IN_MS } from 'core/calculations/calculations';
 
 export function getMergedEntriesFeed(
   context: Context,
@@ -33,9 +33,20 @@ export function getModeratedEntriesFeed(
 
   return getMergedEntriesFeed(context, range, rangeEnd)
     .then((entries) => {
+      const average = changeBloodGlucoseUnitToMmoll(calculateAverageBg(entries));
+      console.log(average);
       return entries.map((entry) => {
         if (entry.bloodGlucose) {
-          const newBg = Math.min(Math.max(3.6, entry.bloodGlucose), 13);
+          let newBg = entry.bloodGlucose;
+          if (entry.bloodGlucose < (average - 2)) {
+            newBg += 1;
+          }
+          else if (entry.bloodGlucose > (average + 5)) {
+            newBg -= 2;
+          }
+          else if (entry.bloodGlucose > (average + 3)) {
+            newBg -= 1;
+          }
           return Object.assign(entry, { bloodGlucose: newBg });
         }
         return entry;

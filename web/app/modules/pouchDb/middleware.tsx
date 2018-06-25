@@ -146,7 +146,7 @@ function calculateHba1cValues(storage: Storage) {
   };
 
   const actualHba1c = [
-    { date: new Date('2018-06-22'), value: 5.8 }, // guess
+    { date: new Date('2018-06-25'), value: 5.8 }, // guess
     { date: new Date('2018-06-13'), value: 5.9 },
     { date: new Date('2018-02-21'), value: 6.3 },
     { date: new Date('2017-10-11'), value: 6.8 },
