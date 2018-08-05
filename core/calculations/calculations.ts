@@ -68,5 +68,5 @@ export function calculateHba1c(entries: SensorEntry[]) {
 
   console.log(changeBloodGlucoseUnitToMmoll(avgGlucose));
   // Base formula (avgGlucose + 46.7) / 28.7) from research, -0.6 from Nightscout
-  return (avgGlucose + 46.7) / 28.7 - 0.1;
+  return (avgGlucose + 46.7) / 28.7 - 0.3;
 }

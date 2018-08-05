@@ -38,13 +38,13 @@ export function getModeratedEntriesFeed(
       return entries.map((entry) => {
         if (entry.bloodGlucose) {
           let newBg = entry.bloodGlucose;
-          if (entry.bloodGlucose < (average - 2.5)) {
+          if (entry.bloodGlucose < (average - 3)) {
             newBg += 1;
           }
-          else if (entry.bloodGlucose > (average + 4.5)) {
+          else if (entry.bloodGlucose > (average + 6)) {
             newBg -= 2;
           }
-          else if (entry.bloodGlucose > (average + 3)) {
+          else if (entry.bloodGlucose > (average + 5)) {
             newBg -= 1;
           }
           return Object.assign(entry, { bloodGlucose: newBg });
